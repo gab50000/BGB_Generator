@@ -94,9 +94,13 @@ def main():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        if i % 100 == 0:
+        if i % 500 == 0:
+            logger.info("Saving parameters")
+            torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
+        elif i % 100 == 0:
             logger.info("Saving parameters")
             torch.save(net.state_dict(), MODEL_PATH)
+
 
 
 fire.Fire()
