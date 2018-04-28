@@ -14,6 +14,7 @@ daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 MODEL_PATH = "weights"
 
+
 class CharPredictor(torch.nn.Module):
     def __init__(self, number_of_chars):
         super().__init__()
@@ -41,13 +42,14 @@ def text_to_onehot(text):
     def vec_to_text(vec):
         return "".join(reverse_dict[char] for char in np.argmax(vec, axis=-1).squeeze().tolist())
 
-    return vec_to_text, text_vec
+    return reverse_dict, vec_to_text, text_vec
 
 
 class TextDataset(Dataset):
     def __init__(self, filename):
         bgb_text = get_text(filename)
-        reverse, text_vec = text_to_onehot(bgb_text)
+        reverse_dict, reverse, text_vec = text_to_onehot(bgb_text)
+        self.reverse_dict = reverse_dict
         self.reverse = reverse
         self.data = torch.from_numpy(text_vec).reshape(-1, 1, text_vec.shape[-1])
 
