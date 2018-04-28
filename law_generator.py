@@ -87,9 +87,6 @@ def main():
     number_of_chars = dataset[0].shape[1]
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
-    hidden, cell = (torch.zeros(1, 1, number_of_chars),
-                    torch.zeros(1, 1, number_of_chars))
-
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
     net = CharPredictor(number_of_chars)
     if os.path.exists(MODEL_PATH):
@@ -101,20 +98,23 @@ def main():
 
     # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
 
-    for i, batch in enumerate(dataloader):
-        # print("Batch:")
-        # print(dataset.reverse(batch))
-        loss = feed_sequence(net, hidden, cell, batch, criterion)
-        print(f"Step {i: 8d}; Loss: {loss.item():10.2f}", end="\r")
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        if i % 500 == 0:
-            logger.info("Saving parameters")
-            torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
-        elif i % 100 == 0:
-            logger.info("Saving parameters")
-            torch.save(net.state_dict(), MODEL_PATH)
+    while True:
+        hidden, cell = (torch.zeros(1, 1, number_of_chars),
+                        torch.zeros(1, 1, number_of_chars))
+        for i, batch in enumerate(dataloader):
+            # print("Batch:")
+            # print(dataset.reverse(batch))
+            loss = feed_sequence(net, hidden, cell, batch, criterion)
+            print(f"Step {i: 8d}; Loss: {loss.item():10.2f}", end="\r")
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            if i % 500 == 0:
+                logger.info("Saving parameters")
+                torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
+            elif i % 100 == 0:
+                logger.info("Saving parameters")
+                torch.save(net.state_dict(), MODEL_PATH)
 
 
 def run(filename):
