@@ -30,7 +30,7 @@ def text_to_onehot(text):
     reverse_dict = {v: k for k, v in tokenizer.word_index.items()}
 
     def vec_to_text(vec):
-        return "".join(reverse_dict[char] for char in np.argmax(vec, axis=1))
+        return "".join(reverse_dict[char] for char in np.argmax(vec, axis=-1).squeeze().tolist())
 
     return vec_to_text, text_vec
 
@@ -59,6 +59,7 @@ def feed_sequence(net, hidden, cell, sequence, criterion):
 
 def main():
     dataset = TextDataset("bgb.md")
+    dataloader = DataLoader(dataset, batch_size=200)
     number_of_chars = dataset[0].shape[1]
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
@@ -71,10 +72,18 @@ def main():
     optimizer = torch.optim.SGD(params=net.parameters(), lr=1e-4)
     criterion = torch.nn.NLLLoss()
 
-    output, (hidden, cell) = net(dataset[:1], (hidden, cell))
+    # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
 
-    loss = feed_sequence(net, hidden, cell, dataset[:10], criterion)
-    print(loss)
+    for i, batch in enumerate(dataloader):
+        # print("Batch:")
+        # print(dataset.reverse(batch))
+        loss = feed_sequence(net, hidden, cell, batch, criterion)
+        print(loss)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        if i == 1000:
+            break
 
 
 fire.Fire()
