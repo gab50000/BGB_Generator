@@ -1,3 +1,4 @@
+import daiquiri
 import os
 
 import fire
@@ -5,6 +6,10 @@ import numpy as np
 from tensorflow import keras
 import torch
 from torch.utils.data import Dataset, DataLoader
+
+
+logger = daiquiri.getLogger(__name__)
+daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 
 MODEL_PATH = "weights"
