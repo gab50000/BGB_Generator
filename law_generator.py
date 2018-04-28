@@ -88,7 +88,7 @@ def main():
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
-    net = CharPredictor(number_of_chars)
+    net = CharPredictor(number_of_chars, dataset.reverse_dict)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
