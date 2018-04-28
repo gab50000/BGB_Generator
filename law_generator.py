@@ -79,7 +79,7 @@ def main():
     net = CharPredictor(number_of_chars)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
-        net.load_state_dict(MODEL_PATH)
+        net.load_state_dict(torch.load(MODEL_PATH))
 
     optimizer = torch.optim.SGD(params=net.parameters(), lr=1e-4)
     criterion = torch.nn.NLLLoss()
