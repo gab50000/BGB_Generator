@@ -120,22 +120,17 @@ def main():
 def run(filename):
     dataset = TextDataset("bgb.md")
     number_of_chars = 63
-    net = CharPredictor(number_of_chars)
+    net = CharPredictor(number_of_chars, dataset.reverse_dict)
     net.load_state_dict(torch.load(filename))
 
     hidden, cell = (torch.randn(1, 1, number_of_chars),
                     torch.randn(1, 1, number_of_chars))
 
-    start = torch.zeros(1, 1, 63)
-    start[0, 0, 4] = 1
-    output = start
+    output = "a"
 
-    for i in range(10):
-        print(output)
-        output, (hidden, cell) = net(output, (hidden, cell))
-        probs = np.exp(output.detach().squeeze())
-        idx = np.argmax(probs, axis=-1).item()
-        print(dataset.reverse_dict[idx], end="")
+    while True:
+        output, (hidden, cell) = net.sample(output, (hidden, cell))
+        print(output, end="")
 
 
 fire.Fire()
