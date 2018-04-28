@@ -1,9 +1,13 @@
+import os
+
 import fire
 import numpy as np
 from tensorflow import keras
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+
+MODEL_PATH = "weights"
 
 class CharPredictor(torch.nn.Module):
     def __init__(self, number_of_chars):
@@ -68,6 +72,9 @@ def main():
 
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
     net = CharPredictor(number_of_chars)
+    if os.path.exists(MODEL_PATH):
+        logger.info("Found model parameters. Will load them")
+        net.load_state_dict(MODEL_PATH)
 
     optimizer = torch.optim.SGD(params=net.parameters(), lr=1e-4)
     criterion = torch.nn.NLLLoss()
@@ -78,12 +85,13 @@ def main():
         # print("Batch:")
         # print(dataset.reverse(batch))
         loss = feed_sequence(net, hidden, cell, batch, criterion)
-        print(loss)
+        print(f"Step {i: 8d}; Loss: {loss.item():10.2f}", end="\r")
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        if i == 1000:
-            break
+        if i == 100:
+            logger.info("Saving parameters")
+            torch.save(net.state_dict(), MODEL_PATH)
 
 
 fire.Fire()
