@@ -16,15 +16,28 @@ MODEL_PATH = "weights"
 
 
 class CharPredictor(torch.nn.Module):
-    def __init__(self, number_of_chars):
+    def __init__(self, number_of_chars, reverse_dict):
         super().__init__()
         self.lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
         self.softmax = torch.nn.LogSoftmax(dim=-1)
+
+        self.reverse_dict = reverse_dict
+        self.dict = {v: k for k, v in self.reverse_dict.items()}
+        self.number_of_chars = number_of_chars
 
 
     def forward(self, x, hidden):
         x, hidden = self.lstm(x, hidden)
         return self.softmax(x), hidden
+
+    def sample(self, last_char, hidden):
+        idx = self.dict[last_char]
+        input = torch.zeros(1, 1, self.number_of_chars)
+        input[0, 0, idx] = 1
+        output, hidden = self.forward(input, hidden)
+        probs = np.exp(output.detach().squeeze()).numpy()
+        idx = np.random.choice(range(self.number_of_chars), p=probs)
+        return self.reverse_dict[idx], hidden
 
 
 def get_text(filename):
