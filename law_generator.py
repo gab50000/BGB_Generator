@@ -134,9 +134,9 @@ def main():
 
 
 def run(filename):
-    dataset = TextDataset("bgb.md")
-    number_of_chars = 63
-    net = CharPredictor(number_of_chars, dataset.reverse_dict)
+    dataset = TextLoader("bgb.md")
+    number_of_chars = 62
+    net = CharPredictor(number_of_chars, dataset.idx_to_char)
     net.load_state_dict(torch.load(filename))
 
     hidden, cell = (torch.randn(1, 1, number_of_chars),
