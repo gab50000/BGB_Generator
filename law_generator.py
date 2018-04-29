@@ -46,8 +46,7 @@ class CharPredictor(torch.nn.Module):
         probs = np.exp(output.detach().squeeze() / temperature).numpy()
         probs /= probs.sum()
         idx = np.random.choice(range(self.number_of_chars), p=probs)
-        return self.reverse_dict[max(idx, 1)], hidden
-
+        return self.reverse_dict[idx], hidden
 
 
 class TextLoader(Dataset):
