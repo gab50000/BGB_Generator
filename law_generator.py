@@ -111,7 +111,7 @@ def main():
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
 
-    optimizer = torch.optim.SGD(params=net.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(params=net.parameters())
     criterion = torch.nn.NLLLoss()
 
     # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
