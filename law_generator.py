@@ -31,12 +31,13 @@ class CharPredictor(torch.nn.Module):
         x, hidden = self.lstm(x, hidden)
         return self.softmax(x), hidden
 
-    def sample(self, last_char, hidden):
+    def sample(self, last_char, hidden, temperature):
         idx = self.dict[last_char]
         input = torch.zeros(1, 1, self.number_of_chars)
         input[0, 0, idx] = 1
         output, hidden = self.forward(input, hidden)
-        probs = np.exp(output.detach().squeeze()).numpy()
+        probs = np.exp(output.detach().squeeze() / temperature).numpy()
+        probs /= probs.sum()
         idx = np.random.choice(range(self.number_of_chars), p=probs)
         return self.reverse_dict[max(idx, 1)], hidden
 
@@ -143,10 +144,11 @@ def run(filename):
                     torch.randn(1, 1, number_of_chars))
 
     output = "a"
+    temperature = 1
 
     while True:
-        output, (hidden, cell) = net.sample(output, (hidden, cell))
-        print(output, end="")
+        output, (hidden, cell) = net.sample(output, (hidden, cell), temperature)
+        print(output, end="", flush=True)
 
 
 fire.Fire()
