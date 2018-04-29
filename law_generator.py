@@ -118,6 +118,7 @@ def main():
     # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
 
     while True:
+        logger.info("Start from beginning of text")
         hidden, cell = (torch.zeros(NUM_LAYERS, 1, number_of_chars),
                         torch.zeros(NUM_LAYERS, 1, number_of_chars))
         for i, batch in enumerate(dataloader):
