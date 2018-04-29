@@ -15,7 +15,7 @@ daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 MODEL_PATH = "weights"
 NUM_LAYERS = 1  # lstm layers
-HIDDEN_SIZE = 100
+HIDDEN_SIZE = 200
 SAVE_FREQUENCY = 1000
 
 
