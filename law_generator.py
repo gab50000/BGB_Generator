@@ -14,12 +14,13 @@ daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 
 MODEL_PATH = "weights"
+NUM_LAYERS = 2  # lstm layers
 
 
 class CharPredictor(torch.nn.Module):
-    def __init__(self, number_of_chars, reverse_dict):
+    def __init__(self, number_of_chars, reverse_dict, num_layers):
         super().__init__()
-        self.lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
+        self.lstm = torch.nn.LSTM(number_of_chars, number_of_chars, num_layers=num_layers)
         self.softmax = torch.nn.LogSoftmax(dim=-1)
 
         self.reverse_dict = reverse_dict
@@ -105,7 +106,7 @@ def main():
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
-    net = CharPredictor(number_of_chars, dataset.idx_to_char)
+    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
@@ -116,13 +117,13 @@ def main():
     # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
 
     while True:
-        hidden, cell = (torch.zeros(1, 1, number_of_chars),
-                        torch.zeros(1, 1, number_of_chars))
+        hidden, cell = (torch.zeros(NUM_LAYERS, 1, number_of_chars),
+                        torch.zeros(NUM_LAYERS, 1, number_of_chars))
         for i, batch in enumerate(dataloader):
             # print("Batch:")
             # print(dataset.reverse(batch))
             loss = feed_sequence(net, hidden, cell, batch, criterion)
-            print(f"Step {i: 8d}; Loss: {loss.item():10.2f}", end="\r")
+            print(f"Step {i: 8d}; Loss: {loss.item():12.8f}", end="\r")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -137,11 +138,11 @@ def main():
 def run(filename):
     dataset = TextLoader("bgb.md")
     number_of_chars = 62
-    net = CharPredictor(number_of_chars, dataset.idx_to_char)
+    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
     net.load_state_dict(torch.load(filename))
 
-    hidden, cell = (torch.randn(1, 1, number_of_chars),
-                    torch.randn(1, 1, number_of_chars))
+    hidden, cell = (torch.randn(NUM_LAYERS, 1, number_of_chars),
+                    torch.randn(NUM_LAYERS, 1, number_of_chars))
 
     output = "a"
     temperature = 1
