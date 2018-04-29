@@ -15,6 +15,7 @@ daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 MODEL_PATH = "weights"
 NUM_LAYERS = 2  # lstm layers
+SAVE_FREQUENCY = 1000
 
 
 class CharPredictor(torch.nn.Module):
@@ -127,12 +128,10 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if i % 500 == 0:
-                logger.info("Saving parameters")
-                torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
-            elif i % 100 == 0:
+            if i % SAVE_FREQUENCY == 0:
                 logger.info("Saving parameters")
                 torch.save(net.state_dict(), MODEL_PATH)
+                torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
 
 
 def run(filename):
