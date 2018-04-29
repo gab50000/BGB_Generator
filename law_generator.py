@@ -14,14 +14,15 @@ daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 
 MODEL_PATH = "weights"
-NUM_LAYERS = 2  # lstm layers
+NUM_LAYERS = 1  # lstm layers
+HIDDEN_SIZE = 100
 SAVE_FREQUENCY = 1000
 
 
 class CharPredictor(torch.nn.Module):
     def __init__(self, number_of_chars, reverse_dict, num_layers):
         super().__init__()
-        self.lstm = torch.nn.LSTM(number_of_chars, number_of_chars, num_layers=num_layers)
+        self.lstm = torch.nn.LSTM(number_of_chars, HIDDEN_SIZE, num_layers=num_layers)
         self.softmax = torch.nn.LogSoftmax(dim=-1)
 
         self.reverse_dict = reverse_dict
@@ -119,8 +120,8 @@ def main():
 
     while True:
         logger.info("Start from beginning of text")
-        hidden, cell = (torch.zeros(NUM_LAYERS, 1, number_of_chars),
-                        torch.zeros(NUM_LAYERS, 1, number_of_chars))
+        hidden, cell = (torch.zeros(NUM_LAYERS, 1, HIDDEN_SIZE),
+                        torch.zeros(NUM_LAYERS, 1, HIDDEN_SIZE))
         for i, batch in enumerate(dataloader):
             # print("Batch:")
             # print(dataset.reverse(batch))
@@ -141,8 +142,8 @@ def run(filename):
     net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
     net.load_state_dict(torch.load(filename))
 
-    hidden, cell = (torch.randn(NUM_LAYERS, 1, number_of_chars),
-                    torch.randn(NUM_LAYERS, 1, number_of_chars))
+    hidden, cell = (torch.randn(NUM_LAYERS, 1, HIDDEN_SIZE),
+                    torch.randn(NUM_LAYERS, 1, HIDDEN_SIZE))
 
     output = "a"
     temperature = 1
