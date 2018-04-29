@@ -1,10 +1,10 @@
-import daiquiri
 import os
 
+import daiquiri
 import fire
 import numpy as np
-from tensorflow import keras
 import torch
+from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -37,34 +37,44 @@ class CharPredictor(torch.nn.Module):
         output, hidden = self.forward(input, hidden)
         probs = np.exp(output.detach().squeeze()).numpy()
         idx = np.random.choice(range(self.number_of_chars), p=probs)
-        return self.reverse_dict[idx], hidden
+        return self.reverse_dict[max(idx, 1)], hidden
 
 
-def get_text(filename):
-    with open(filename, "r") as f:
-        text = f.read().lower()
-    return text
 
-
-def text_to_onehot(text):
-    tokenizer = keras.preprocessing.text.Tokenizer(char_level=True)
-    tokenizer.fit_on_texts(text)
-    text_vec = tokenizer.texts_to_matrix(text).astype(np.float32)
-    reverse_dict = {v: k for k, v in tokenizer.word_index.items()}
-
-    def vec_to_text(vec):
-        return "".join(reverse_dict[char] for char in np.argmax(vec, axis=-1).squeeze().tolist())
-
-    return reverse_dict, vec_to_text, text_vec
-
-
-class TextDataset(Dataset):
+class TextLoader(Dataset):
     def __init__(self, filename):
-        bgb_text = get_text(filename)
-        reverse_dict, reverse, text_vec = text_to_onehot(bgb_text)
-        self.reverse_dict = reverse_dict
-        self.reverse = reverse
-        self.data = torch.from_numpy(text_vec).reshape(-1, 1, text_vec.shape[-1])
+        torch_fname = filename.rstrip(".torch") + ".torch"
+        if os.path.exists(torch_fname):
+            self.data = torch.load(torch_fname)
+        else:
+            text = self.get_text(filename)
+            self.data = self.text_to_onehot(text)
+            torch.save(self.data, torch_fname)
+
+    @staticmethod
+    def get_text(filename):
+        logger.info("Reading text")
+        with open(filename, "r") as f:
+            text = f.read().lower()
+        return text
+
+    def text_to_onehot(self, text):
+        logger.info("Converting text to vector")
+        text = text.lower()
+        chars = list(set(text))
+        text_len = len(text)
+        logger.debug("Chars: %s", chars)
+        char_to_idx = {char: i for i, char in enumerate(chars)}
+        idx_to_char = {i: char for i, char in enumerate(chars)}
+        self.char_to_idx = char_to_idx
+        self.idx_to_char = idx_to_char
+
+        text_vec = torch.zeros(len(text), 1, len(chars), dtype=torch.float32)
+        for i in tqdm(range(len(text))):
+            char = text[i]
+            text_vec[i][0][char_to_idx[char]] = 1
+
+        return text_vec
 
     def __len__(self):
         return self.data.shape[0]
@@ -82,7 +92,7 @@ def feed_sequence(net, hidden, cell, sequence, criterion):
 
 
 def main():
-    dataset = TextDataset("bgb.md")
+    dataset = TextLoader("bgb.md")
     dataloader = DataLoader(dataset, batch_size=200)
     number_of_chars = dataset[0].shape[1]
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
