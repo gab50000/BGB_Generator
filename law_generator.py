@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import daiquiri
 import fire
@@ -46,10 +47,14 @@ class TextLoader(Dataset):
         torch_fname = filename.rstrip(".torch") + ".torch"
         if os.path.exists(torch_fname):
             self.data = torch.load(torch_fname)
+            with open("char_idx_dicts", "rb") as f:
+                self.char_to_idx, self.idx_to_char = pickle.load(f)
         else:
             text = self.get_text(filename)
             self.data = self.text_to_onehot(text)
             torch.save(self.data, torch_fname)
+            with open("char_idx_dicts", "wb") as f:
+                pickle.dump((self.char_to_idx, self.idx_to_char), f)
 
     @staticmethod
     def get_text(filename):
@@ -98,7 +103,7 @@ def main():
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
-    net = CharPredictor(number_of_chars, dataset.reverse_dict)
+    net = CharPredictor(number_of_chars, dataset.idx_to_char)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
