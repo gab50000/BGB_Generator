@@ -9,6 +9,9 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
 
+torch.random.manual_seed(0)
+
+
 logger = daiquiri.getLogger(__name__)
 daiquiri.setup(level=daiquiri.logging.DEBUG)
 
@@ -71,7 +74,7 @@ class TextLoader(Dataset):
     def text_to_onehot(self, text):
         logger.info("Converting text to vector")
         text = text.lower()
-        chars = list(set(text))
+        chars = sorted(set(text))
         text_len = len(text)
         logger.debug("Chars: %s", chars)
         char_to_idx = {char: i for i, char in enumerate(chars)}
