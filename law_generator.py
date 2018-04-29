@@ -23,6 +23,7 @@ class CharPredictor(torch.nn.Module):
     def __init__(self, number_of_chars, reverse_dict, num_layers):
         super().__init__()
         self.lstm = torch.nn.LSTM(number_of_chars, HIDDEN_SIZE, num_layers=num_layers)
+        self.dense = torch.nn.Linear(HIDDEN_SIZE, number_of_chars)
         self.softmax = torch.nn.LogSoftmax(dim=-1)
 
         self.reverse_dict = reverse_dict
@@ -32,7 +33,7 @@ class CharPredictor(torch.nn.Module):
 
     def forward(self, x, hidden):
         x, hidden = self.lstm(x, hidden)
-        return self.softmax(x), hidden
+        return self.softmax(self.dense(x)), hidden
 
     def sample(self, last_char, hidden, temperature):
         idx = self.dict[last_char]
