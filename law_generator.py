@@ -93,6 +93,7 @@ def feed_sequence(net, hidden, cell, sequence, criterion):
     for in_, expected in zip(sequence[:-1], sequence[1:]):
         output, (hidden, cell) = net(in_[None, ...], (hidden, cell))
         loss += criterion(output[0], torch.argmax(expected, dim=-1))
+    loss /= (len(sequence) - 1)
     return loss
 
 
