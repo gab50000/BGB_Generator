@@ -1,5 +1,6 @@
 import os
 import pickle
+import time
 
 import daiquiri
 import fire
@@ -9,23 +10,21 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
 
-torch.random.manual_seed(0)
-
-
 logger = daiquiri.getLogger(__name__)
 daiquiri.setup(level=daiquiri.logging.DEBUG)
 
 
 MODEL_PATH = "weights"
-NUM_LAYERS = 1  # lstm layers
+NUM_LAYERS = 2  # lstm layers
 HIDDEN_SIZE = 200
-SAVE_FREQUENCY = 1000
+SAVE_FREQUENCY = 500
 
 
 class CharPredictor(torch.nn.Module):
-    def __init__(self, number_of_chars, reverse_dict, num_layers):
+    def __init__(self, number_of_chars, reverse_dict, num_layers, dropout=0):
         super().__init__()
-        self.lstm = torch.nn.LSTM(number_of_chars, HIDDEN_SIZE, num_layers=num_layers)
+        self.lstm = torch.nn.LSTM(number_of_chars, HIDDEN_SIZE, num_layers=num_layers,
+                                  dropout=dropout)
         self.dense = torch.nn.Linear(HIDDEN_SIZE, number_of_chars)
         self.softmax = torch.nn.LogSoftmax(dim=-1)
 
@@ -105,13 +104,14 @@ def feed_sequence(net, hidden, cell, sequence, criterion):
 
 
 def main():
+    torch.random.manual_seed(0)
     dataset = TextLoader("bgb.md")
     dataloader = DataLoader(dataset, batch_size=200)
     number_of_chars = dataset[0].shape[1]
     # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
 
     # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
-    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
+    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS, dropout=0.5)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
@@ -120,12 +120,12 @@ def main():
     criterion = torch.nn.NLLLoss()
 
     # output, (hidden, cell) = net(dataset[:1], (hidden, cell))
-
+    i = 0
     while True:
         logger.info("Start from beginning of text")
         hidden, cell = (torch.zeros(NUM_LAYERS, 1, HIDDEN_SIZE),
                         torch.zeros(NUM_LAYERS, 1, HIDDEN_SIZE))
-        for i, batch in enumerate(dataloader):
+        for _, batch in enumerate(dataloader):
             # print("Batch:")
             # print(dataset.reverse(batch))
             loss = feed_sequence(net, hidden, cell, batch, criterion)
@@ -135,9 +135,11 @@ def main():
             optimizer.step()
             if i % SAVE_FREQUENCY == 0:
                 logger.info("Saving parameters")
-                torch.save(net.state_dict(), MODEL_PATH)
-                torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
+                parameter_info = f"{NUM_LAYERS}-{HIDDEN_SIZE}"
+                torch.save(net.state_dict(), MODEL_PATH + parameter_info)
+                torch.save(net.state_dict(), MODEL_PATH + parameter_info + f"-{i:05d}")
 
+            i += 1
 
 
 def run(filename, temperature=1, start_char="#", seed=None):
