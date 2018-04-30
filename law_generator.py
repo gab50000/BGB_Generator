@@ -139,21 +139,26 @@ def main():
                 torch.save(net.state_dict(), MODEL_PATH + f"{i:05d}")
 
 
-def run(filename):
-    dataset = TextLoader("bgb.md")
-    number_of_chars = 62
-    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
+
+def run(filename, temperature=1, start_char="#", seed=None):
+    if seed:
+        torch.random.manual_seed(seed)
+    with open("char_idx_dicts", "rb") as f:
+        char_to_idx, idx_to_char = pickle.load(f)
+
+    number_of_chars = len(char_to_idx)
+    net = CharPredictor(number_of_chars, idx_to_char, NUM_LAYERS)
     net.load_state_dict(torch.load(filename))
 
     hidden, cell = (torch.randn(NUM_LAYERS, 1, HIDDEN_SIZE),
                     torch.randn(NUM_LAYERS, 1, HIDDEN_SIZE))
 
-    output = "a"
-    temperature = 1
+    output = start_char
 
     while True:
         output, (hidden, cell) = net.sample(output, (hidden, cell), temperature)
         print(output, end="", flush=True)
+        time.sleep(0.03)
 
 
 fire.Fire()
