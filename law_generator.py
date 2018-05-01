@@ -50,17 +50,9 @@ class CharPredictor(torch.nn.Module):
 
 class TextLoader(Dataset):
     def __init__(self, filename):
-        torch_fname = filename.rstrip(".torch") + ".torch"
-        if os.path.exists(torch_fname):
-            self.data = torch.load(torch_fname)
-            with open("char_idx_dicts", "rb") as f:
-                self.char_to_idx, self.idx_to_char = pickle.load(f)
-        else:
-            text = self.get_text(filename)
-            self.data = self.text_to_onehot(text)
-            torch.save(self.data, torch_fname)
-            with open("char_idx_dicts", "wb") as f:
-                pickle.dump((self.char_to_idx, self.idx_to_char), f)
+        self.data = torch.load(filename)
+        with open("char_idx_dicts", "rb") as f:
+            self.char_to_idx, self.idx_to_char = pickle.load(f)
 
     @staticmethod
     def get_text(filename):
@@ -69,30 +61,52 @@ class TextLoader(Dataset):
             text = f.read().lower()
         return text
 
-    def text_to_onehot(self, text):
-        logger.info("Converting text to vector")
-        text = text.lower()
-        chars = sorted(set(text))
-        text_len = len(text)
-        logger.debug("Chars: %s", chars)
-        char_to_idx = {char: i for i, char in enumerate(chars)}
-        idx_to_char = {i: char for i, char in enumerate(chars)}
-        self.char_to_idx = char_to_idx
-        self.idx_to_char = idx_to_char
-
-        text_vec = torch.zeros(len(text), 1, len(chars), dtype=torch.float32)
-        for i in tqdm(range(len(text))):
-            char = text[i]
-            text_vec[i][0][char_to_idx[char]] = 1
-
-        return text_vec
-
     def __len__(self):
         return self.data.shape[0]
 
     def __getitem__(self, item):
         return self.data[item]
 
+
+def text_to_onehot(*filenames, save_to="data.torch"):
+    logger.info("Converting text to vector")
+    texts = []
+
+    for fn in filenames:
+        with open(fn, "r") as f:
+            texts.append(f.read())
+
+    texts = [text.lower() for text in texts]
+
+    chars = set()
+    text_len = 0
+    for text in texts:
+        chars.update(text)
+        text_len += len(text)
+
+    # add marker for end of file
+    chars.add("EOF")
+    chars = sorted(chars)
+    text_len += len(texts)
+
+    logger.debug("Chars: %s", chars)
+    char_to_idx = {char: i for i, char in enumerate(chars)}
+    idx_to_char = {i: char for i, char in enumerate(chars)}
+
+    with open("char_idx_dicts", "wb") as f:
+        pickle.dump((char_to_idx, idx_to_char), f)
+
+    text_vec = torch.zeros(text_len, 1, len(chars), dtype=torch.float32)
+    vec_idx = 0
+    for fn, text in zip(filenames, texts):
+        logger.info(fn)
+        for char in text:
+            text_vec[vec_idx][0][char_to_idx[char]] = 1
+            vec_idx += 1
+        text_vec[vec_idx][0][char_to_idx["EOF"]] = 1
+        vec_idx += 1
+
+    torch.save(text_vec, save_to)
 
 def feed_sequence(net, hidden, cell, sequence, criterion):
     loss = 0
