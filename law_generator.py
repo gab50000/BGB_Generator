@@ -149,7 +149,7 @@ def train(filename):
                 logger.info("Saving parameters")
                 parameter_info = f"{NUM_LAYERS}-{HIDDEN_SIZE}"
                 torch.save(net.state_dict(), MODEL_PATH + parameter_info)
-                torch.save(net.state_dict(), MODEL_PATH + parameter_info + f"-{i:05d}")
+                #torch.save(net.state_dict(), MODEL_PATH + parameter_info + f"-{i:05d}")
 
             i += 1
 
