@@ -117,15 +117,13 @@ def feed_sequence(net, hidden, cell, sequence, criterion):
     return loss
 
 
-def main():
+def train(filename):
+    """Expects filename of torch tensor"""
     torch.random.manual_seed(0)
-    dataset = TextLoader("bgb.md")
+    dataset = TextLoader(filename)
     dataloader = DataLoader(dataset, batch_size=200)
     number_of_chars = dataset[0].shape[1]
-    # lstm = torch.nn.LSTM(number_of_chars, number_of_chars)
-
-    # print(lstm(dataset[:1]))  # optional: , (hidden, cell)))
-    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS, dropout=0.5)
+    net = CharPredictor(number_of_chars, dataset.idx_to_char, NUM_LAYERS)
     if os.path.exists(MODEL_PATH):
         logger.info("Found model parameters. Will load them")
         net.load_state_dict(torch.load(MODEL_PATH))
