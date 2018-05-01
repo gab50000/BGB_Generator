@@ -154,7 +154,7 @@ def train(filename):
             i += 1
 
 
-def run(filename, temperature=1, start_char="#", seed=None):
+def run(filename, temperature=1, start_char="a", seed=None):
     if seed:
         torch.random.manual_seed(seed)
     with open("char_idx_dicts", "rb") as f:
@@ -171,6 +171,9 @@ def run(filename, temperature=1, start_char="#", seed=None):
 
     while True:
         output, (hidden, cell) = net.sample(output, (hidden, cell), temperature)
+        if output == "EOF":
+            print()
+            break
         print(output, end="", flush=True)
         time.sleep(0.03)
 
