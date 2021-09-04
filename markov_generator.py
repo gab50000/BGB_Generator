@@ -1,7 +1,12 @@
 from collections import defaultdict, Counter
 import logging
+import pathlib
+import pickle
+import re
+import time
 from typing import Dict, List, Tuple
 
+import fire
 import numpy as np
 from tqdm import tqdm
 
@@ -12,22 +17,34 @@ def chunks(list_, n):
 
 
 class Generator:
-    def __init__(self, n):
+    def __init__(self, n, temperature=1):
         self.n = n
+        self.temperature = temperature
         self.caches = [defaultdict(Counter) for _ in range(n)]
         self.logger = logging.getLogger(type(self).__name__)
 
-    def predict(self, word_sequence: Tuple[str]) -> str:
+    @classmethod
+    def from_file(cls, filename) -> "Generator":
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+
+    def to_file(self, filename):
+        self.logger.info("Save to file %s", filename)
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+
+    def predict(self, word_sequence: Tuple[str, ...]) -> str:
         for cache in reversed(self.caches):
             if word_sequence in cache:
                 return self.sample(cache[word_sequence])
         raise ValueError("Cannot sample")
 
-    def sample(self, word_probs: Dict[str, float]) -> str:
-        candidates = list(word_probs.keys())
-        probs = list(word_probs.values())
-        idx = np.argmax(np.random.multinomial(1, probs))
-        return candidates[idx]
+    def sample(self, log_probs: Dict[str, float]) -> str:
+        candidates = list(log_probs.keys())
+        probs = np.asfarray(list(log_probs.values()))
+        probs = np.exp(probs / self.temperature)
+        probs /= probs.sum()
+        return np.random.choice(candidates, p=probs)
 
     def learn(self, word_sequence: List[str], following_word: str):
         self.caches[len(word_sequence) - 1][tuple(word_sequence)][following_word] += 1
@@ -49,19 +66,31 @@ class Generator:
             for counter in tqdm(cache.values()):
                 total = sum(counter.values())
                 for key, val in counter.items():
-                    counter[key] = val / total
+                    counter[key] = np.log(val / total)
 
 
-if __name__ == "__main__":
-    with open("bgb.md", "r") as f:
-        logging.basicConfig(level=logging.INFO)
+def main(input_text, temperature):
+    logging.basicConfig(level=logging.INFO)
+    with open(input_text, "r") as f:
         text = f.read().lower()
-        gen = Generator(8)
-        gen.train(list(text))
+        text = re.split(r"\t| ", re.sub(r"\n", " \n ", text))
 
-        seq = ("v", "e", "r")
-        print("".join(seq), end="")
-        while True:
-            new_word = gen.predict(seq)
-            seq = (*seq[1:], new_word)
-            print(new_word, end="")
+    pickle_filename = "gen.pickle"
+    if pathlib.Path(pickle_filename).exists():
+        gen = Generator.from_file(pickle_filename)
+    else:
+        gen = Generator(10)
+        gen.train(list(text))
+        gen.to_file(pickle_filename)
+
+    gen.temperature = temperature
+    seq = ("der",)
+    print("".join(seq), end=" ")
+    while True:
+        new_word = gen.predict(seq)
+        seq = (*seq[1:], new_word)
+        print(new_word, end=" ", flush=True)
+        time.sleep(0.1)
+
+
+fire.Fire(main)
